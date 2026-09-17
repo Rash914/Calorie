@@ -9,6 +9,11 @@ import { fileURLToPath } from 'node:url';
 import mains from './curated/mains.mjs';
 import snacks from './curated/snacks-sweets.mjs';
 import drinks from './curated/drinks-dairy-produce.mjs';
+import regional2 from './curated/regional2.mjs';
+import packaged2 from './curated/packaged2.mjs';
+import chainsIntl from './curated/chains-intl.mjs';
+import zlib from 'node:zlib';
+import { buildOff } from './build-off.mjs';
 import { CATEGORIES } from './curated/schema.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -48,6 +53,9 @@ function addCurated(row, file) {
 for (const r of mains) addCurated(r, 'mains');
 for (const r of snacks) addCurated(r, 'snacks-sweets');
 for (const r of drinks) addCurated(r, 'drinks-dairy-produce');
+for (const r of regional2) addCurated(r, 'regional2');
+for (const r of packaged2) addCurated(r, 'packaged2');
+for (const r of chainsIntl) addCurated(r, 'chains-intl');
 const curatedCount = foods.length;
 
 // ---------------------------------------------------------------- INDB
@@ -237,7 +245,17 @@ const out = {
   foods
 };
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
+const json = JSON.stringify(out);
+fs.writeFileSync(OUT, json);
+// gzip copy for the app (small download / small APK) + version manifest for remote updates
+const gz = zlib.gzipSync(json, { level: 9 });
+fs.writeFileSync(OUT + '.gz', gz);
+const dbVersion = Number(new Date().toISOString().replace(/[-T:]/g, '').slice(0, 12)); // YYYYMMDDHHMM
+out.version = dbVersion;
 fs.writeFileSync(OUT, JSON.stringify(out));
+fs.writeFileSync(OUT + '.gz', zlib.gzipSync(JSON.stringify(out), { level: 9 }));
+const off = buildOff(path.join(__dirname, 'sources', 'off-india.json'), path.dirname(OUT), nameIndex, norm);
+fs.writeFileSync(path.join(path.dirname(OUT), 'version.json'), JSON.stringify({ version: dbVersion, count: foods.length, extraCount: off.count, files: { core: 'foods.json.gz', extra: 'foods-off.json.gz' }, bytes: fs.statSync(OUT + '.gz').size, generated: out.generated }));
 const report = [
   `Generated ${out.generated}`,
   `Total foods: ${foods.length}`,
@@ -245,7 +263,7 @@ const report = [
   `  INDB kept: ${indbKept} (dropped fried/inflated: ${indbDroppedFried}, duplicates of curated: ${indbDroppedDup}, bad rows: ${indbDroppedBad})`,
   `  IFCT kept: ${ifctKept} (skipped varietal replicates: ${ifctSkipped}, duplicates of curated: ${ifctDup})`,
   `By category: ${Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}=${v}`).join(', ')}`,
-  `Output: ${OUT} (${(fs.statSync(OUT).size / 1024).toFixed(0)} KB)`,
+  `Output: ${OUT} (${(fs.statSync(OUT).size / 1024).toFixed(0)} KB, gz ${(fs.statSync(OUT + '.gz').size / 1024).toFixed(0)} KB, db version ${dbVersion})`,
   '',
   `Warnings (${warnings.length}):`,
   ...warnings

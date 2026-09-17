@@ -41,7 +41,11 @@ Approximate calorific values of cooked preparations from *Nutrition and Health*,
 
 Protein content ranges (g/100 g) from the same book, used as a sanity check: milk 3.2–4.3, meat 18–26, egg 13, fish 15–23, cereals 6–13, pulses 21–28, vegetables 1–4, fruits 1–3, nuts 4.5–29, soybean 43.2, oils/fats nil, sugar/jaggery nil.
 
-## 4. Energy requirements
+## 4. Open Food Facts (packaged catalogue + online lookup)
+
+https://world.openfoodfacts.org — Open Database License (ODbL). A snapshot of products tagged India with completed nutrition facts is bundled as `foods-off.json.gz` (rebuilt with `node data-build/fetch-off.mjs && node data-build/build.mjs`); rows without energy or macros, with energy inconsistent with macros (> 30 %), duplicates and items already curated are dropped. The in-app "Search online" button queries the same database live (only on request; results cached and saved as custom foods when logged).
+
+## 5. Energy requirements
 
 - **BMR:** Mifflin–St Jeor. **TDEE:** BMR × activity factor (1.2 / 1.375 / 1.55 / 1.725 / 1.9).
 - **ICMR-NIN 2020 RDA (energy, kcal/day)** shown as a population reference:

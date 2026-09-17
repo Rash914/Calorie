@@ -83,3 +83,20 @@ test('profile ethnicity sanitized', () => {
   store.setProfile({ ethnicity: 'other' });
   assert.equal(store.get().profile.ethnicity, 'other');
 });
+
+test('open food facts mapping', async () => {
+  const { mapProduct } = await import('../app/js/off.js');
+  const f = mapProduct({ code: '8901058851304', brands: ['Nestle'], countries_tags: ['en:india'], product_name: 'Maggi Masala Noodles', serving_size: '70 g', nutriments: { 'energy-kcal_100g': 427, proteins_100g: 8, carbohydrates_100g: 63.5, fat_100g: 15.7, fiber_100g: 3.6 } });
+  assert.equal(f.k, 427); assert.equal(f.p, 8); assert.equal(f.india, true); assert.equal(f.s[0][1], 70); assert.match(f.n, /Nestle/);
+  assert.equal(mapProduct({ product_name: 'x', nutriments: {} }), null);
+  assert.equal(mapProduct({ product_name: 'kJ only', nutriments: { energy_100g: 1000 } }).k, 239);
+});
+
+test('search stays fast on the bigger database', () => {
+  const qs = ['paneer', 'chicken biryani', 'dal', 'kfc zinger', 'protien shake', 'दाल', 'xyzzy'];
+  const t0 = performance.now();
+  for (let i = 0; i < 3; i++) for (const q of qs) foods.search(q);
+  const per = (performance.now() - t0) / (3 * qs.length);
+  assert.ok(per < 60, `avg ${per.toFixed(1)} ms per search`);
+  assert.ok(foods.count() >= 2800, `count ${foods.count()}`);
+});

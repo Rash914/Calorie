@@ -15,4 +15,10 @@ globalThis.window = globalThis;
 globalThis.document = { addEventListener() {}, visibilityState: 'visible' };
 globalThis.addEventListener = () => {};
 const dbPath = path.join(__dirname, '..', 'app', 'data', 'foods.json');
-globalThis.fetch = async () => ({ ok: true, json: async () => JSON.parse(fs.readFileSync(dbPath, 'utf8')) });
+globalThis.fetch = async (url) => {
+  const u = String(url);
+  if (u.endsWith('version.json')) return { ok: true, json: async () => JSON.parse(fs.readFileSync(path.join(path.dirname(dbPath), 'version.json'), 'utf8')) };
+  if (u.includes('.gz')) return { ok: false };
+  if (u.startsWith('http')) return { ok: false };
+  return { ok: true, json: async () => JSON.parse(fs.readFileSync(dbPath, 'utf8')) };
+};

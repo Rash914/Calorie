@@ -9,6 +9,8 @@ fs.rmSync(dst, { recursive: true, force: true });
 fs.cpSync(src, dst, { recursive: true });
 const idx = path.join(dst, 'index.html');
 let html = fs.readFileSync(idx, 'utf8');
-html = html.replace("script-src 'self';", "script-src 'self' 'unsafe-inline';").replace("connect-src 'self';", "connect-src 'self' https://localhost;");
+html = html.replace("script-src 'self';", "script-src 'self' 'unsafe-inline';").replace("connect-src 'self'", "connect-src 'self' https://localhost");
 fs.writeFileSync(idx, html);
+// the WebView supports DecompressionStream, so only the gzip database is shipped in the APK
+fs.rmSync(path.join(dst, 'data', 'foods.json'), { force: true });
 console.log('android-www ready');

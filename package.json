@@ -1,6 +1,6 @@
 {
   "name": "caloriemate",
-  "version": "1.3.0",
+  "version": "1.5.0",
   "private": true,
   "description": "Aahar \u00e2\u20ac\u201d Indian calorie tracker PWA with voice logging (English/Hindi), streaks, calendar and sustainable weight plans.",
   "type": "module",

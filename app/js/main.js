@@ -72,6 +72,9 @@ async function boot() {
   store.bus.on('error', (m) => toast(m, 'error', 5000));
   store.bus.on('change', updateStreak);
   render();
+  foods.dbEvents.on('updated', ({ count }) => { toast(`Food database updated · ${count.toLocaleString('en-IN')} foods`, 'success', 4000); if (router.current() === 'log') render(); });
+  // packaged-product catalogue loads after the first paint, then the remote version check
+  setTimeout(() => foods.loadExtra().then(() => foods.checkForUpdate()), 1200);
   if (!store.get().settings.onboarded) openOnboarding({ onDone: render });
   else if (/voice=1/.test(location.hash)) { history.replaceState(null, '', '#home'); openVoiceSheet({ date: home.state.date, onAdded: () => render() }); }
   registerSW();

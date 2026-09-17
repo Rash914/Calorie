@@ -31,6 +31,7 @@ export const CATEGORIES = {
   condiments: 'Chutneys, Pickles & Spreads',
   raw: 'Raw Grains, Flours & Pulses',
   regional: 'Regional Specialities',
+  intl: 'International',
   meat: 'Meat, Poultry & Fish (raw)',
   spices: 'Spices & Herbs',
   oils: 'Oils & Fats'

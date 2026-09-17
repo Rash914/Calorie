@@ -8,7 +8,7 @@ import { applyTheme } from '../theme.js';
 import { navigate } from '../router.js';
 import { creditText, CREDIT_LABEL } from '../credit.js';
 
-export const APP_VERSION = '1.3.0';
+export const APP_VERSION = '1.5.0';
 export function render(root) {
   clear(root);
   const s = store.get();

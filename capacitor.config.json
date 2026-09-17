@@ -4,5 +4,5 @@
   "webDir": "android-www",
   "android": { "allowMixedContent": false, "backgroundColor": "#eef5fb" },
   "server": { "androidScheme": "https" },
-  "plugins": { "SplashScreen": { "launchShowDuration": 0 } }
+  "plugins": { "SplashScreen": { "launchShowDuration": 0 }, "CapacitorHttp": { "enabled": true } }
 }

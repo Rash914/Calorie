@@ -1,5 +1,6 @@
 // Food database: loading, normalisation (Latin + Devanagari), fuzzy search.
 import * as store from './store.js';
+import { emitter } from './util.js';
 
 let DB = null;          // { foods, categories, ... }
 let INDEX = [];         // [{ f, keys:[norm strings], tokens:Set, full }]
@@ -60,14 +61,109 @@ function bigrams(s) { const out = new Set(); const t = s.replace(/\s/g, ''); for
 function dice(a, b) { if (!a.size || !b.size) return 0; let n = 0; for (const x of a) if (b.has(x)) n++; return (2 * n) / (a.size + b.size); }
 
 // ---------------------------------------------------------------- loading
-export async function load(url = './data/foods.json') {
-  if (DB) return DB;
-  const res = await fetch(url, { cache: 'force-cache' });
+// Bundled copy (gzip) ships with the app; a newer copy published at REMOTE is downloaded once and kept in IndexedDB.
+export const REMOTE = 'https://rash914.github.io/Calorie/data/';
+const IDB_NAME = 'caloriemate', IDB_STORE = 'kv';
+export const dbEvents = emitter();
+
+function idb() {
+  return new Promise((resolve) => {
+    if (typeof indexedDB === 'undefined') return resolve(null);
+    try {
+      const req = indexedDB.open(IDB_NAME, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    } catch { resolve(null); }
+  });
+}
+async function idbGet(key) {
+  const db = await idb(); if (!db) return null;
+  return new Promise((resolve) => { try { const r = db.transaction(IDB_STORE).objectStore(IDB_STORE).get(key); r.onsuccess = () => resolve(r.result ?? null); r.onerror = () => resolve(null); } catch { resolve(null); } });
+}
+async function idbSet(key, value) {
+  const db = await idb(); if (!db) return false;
+  return new Promise((resolve) => { try { const tx = db.transaction(IDB_STORE, 'readwrite'); tx.objectStore(IDB_STORE).put(value, key); tx.oncomplete = () => resolve(true); tx.onerror = () => resolve(false); } catch { resolve(false); } });
+}
+async function fetchDb(base, version, file = 'foods.json.gz') {
+  // prefer the gzip file (≈ 1/5 the size); fall back to plain JSON where DecompressionStream is unavailable
+  const q = version ? `?v=${version}` : '';
+  if (typeof DecompressionStream !== 'undefined') {
+    try {
+      const res = await fetch(base + file + q, { cache: version ? 'no-store' : 'default' });
+      if (res.ok && res.body) {
+        const text = await new Response(res.body.pipeThrough(new DecompressionStream('gzip'))).text();
+        return validateDb(JSON.parse(text));
+      }
+    } catch (e) { console.warn('gz load failed, falling back', e); }
+  }
+  if (file !== 'foods.json.gz') throw new Error('gzip required for ' + file);
+  const res = await fetch(base + 'foods.json' + q, { cache: version ? 'no-store' : 'default' });
   if (!res.ok) throw new Error('Could not load food database');
-  DB = await res.json();
+  return validateDb(await res.json());
+}
+function validateDb(d) {
+  if (!d || !Array.isArray(d.foods) || d.foods.length < 100) throw new Error('Invalid food database');
+  d.foods = d.foods.filter((f) => f && typeof f.id === 'string' && typeof f.n === 'string' && Number.isFinite(f.k));
+  return d;
+}
+export async function load() {
+  if (DB) return DB;
+  let bundledVersion = 0;
+  try { const v = await fetch('./data/version.json').then((r) => r.json()); bundledVersion = Number(v.version) || 0; } catch { /* offline & uncached: fall through */ }
+  bundledVersionNum = bundledVersion;
+  const cached = await idbGet('foods');
+  if (cached && Number(cached.version) > bundledVersion && Array.isArray(cached.foods)) DB = cached;
+  else DB = await fetchDb('./data/');
   rebuildIndex();
   store.bus.on('change', () => { rebuildCustom(); refreshOverrides(); });
   return DB;
+}
+export const dbVersion = () => DB?.version || 0;
+
+// ---------------------------------------------------------------- extra tier: packaged-product catalogue (loaded lazily, indexed in idle slices)
+let EXTRA = null, extraIndexing = false;
+export const extraCount = () => EXTRA?.foods?.length || 0;
+export async function loadExtra() {
+  if (EXTRA || extraIndexing) return;
+  extraIndexing = true;
+  try {
+    const cached = await idbGet('foods-off');
+    let data = cached && Number(cached.version) > (bundledVersionNum || 0) && Array.isArray(cached.foods) ? cached : null;
+    if (!data) { try { data = await fetchDb('./data/', null, 'foods-off.json.gz'); } catch (e) { console.warn('extra tier unavailable', e); } }
+    if (data) await indexExtra(data);
+  } finally { extraIndexing = false; }
+}
+async function indexExtra(data) {
+  // remove a previous extra tier, then append the new one in slices so the UI never stalls
+  INDEX = INDEX.filter((e) => e.f.t !== 3);
+  for (const id of [...byId.keys()]) if (id.startsWith('off-')) byId.delete(id);
+  EXTRA = data;
+  const foods = data.foods;
+  for (let i = 0; i < foods.length; i += 400) {
+    for (const f of foods.slice(i, i + 400)) { const e = entry(f); INDEX.push(e); byId.set(f.id, e.f); }
+    await new Promise((r) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(r, { timeout: 200 }) : setTimeout(r, 0)));
+  }
+  dbEvents.emit('extra', { count: foods.length });
+}
+let bundledVersionNum = 0;
+/** Look for a newer database online; swaps it in and resolves {count} when updated, null otherwise. */
+export async function checkForUpdate() {
+  if (!DB || (typeof navigator !== 'undefined' && navigator.onLine === false)) return null;
+  try {
+    const v = await fetch(REMOTE + 'version.json?t=' + Date.now(), { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null));
+    if (!v || !(Number(v.version) > dbVersion())) return null;
+    const fresh = await fetchDb(REMOTE, v.version);
+    if (!(Number(fresh.version) > dbVersion())) return null;
+    await idbSet('foods', fresh);
+    DB = fresh;
+    rebuildIndex();
+    if (v.files?.extra) {
+      try { const extra = await fetchDb(REMOTE, v.version, v.files.extra); await idbSet('foods-off', extra); await indexExtra(extra); } catch (e) { console.warn('extra tier update failed', e); }
+    }
+    dbEvents.emit('updated', { count: DB.foods.length + extraCount(), version: DB.version });
+    return { count: DB.foods.length + extraCount(), version: DB.version };
+  } catch (e) { console.warn('db update check failed', e); return null; }
 }
 /** Apply the device's edits (store.overrides) on top of a preloaded food. */
 function merged(base) {
@@ -78,8 +174,9 @@ function merged(base) {
 function entry(base) {
   const f = merged(base);
   const keys = [norm(f.n), ...(f.a || []).map(norm)].filter(Boolean);
-  const tokens = new Set(keys.flatMap((k) => k.split(' ')));
-  return { f, base, keys, tokens, full: keys.join(' | '), bg: bigrams(keys[0]) };
+  const tokArr = [...new Set(keys.flatMap((k) => k.split(' ')))];
+  const tokens = new Set(tokArr);
+  return { f, base, keys, tokens, tokArr, bg: bigrams(keys[0]) };
 }
 function rebuildIndex() {
   INDEX = [];
@@ -113,11 +210,12 @@ export const ready = () => !!DB;
 export const getFood = (id) => byId.get(id) || null;
 export const categories = () => DB?.categories || {};
 export const count = () => INDEX.length;
+export const coreCount = () => DB?.foods?.length || 0;
 export function byCategory(cat, limit = 400) { return INDEX.filter((e) => e.f.c === cat).map((e) => e.f).slice(0, limit); }
 export function all() { return INDEX.map((e) => e.f); }
 
 // ---------------------------------------------------------------- search
-const TIER_BONUS = { '-1': 12, 0: 10, 1: 3, 2: 0 };
+const TIER_BONUS = { '-1': 12, 0: 10, 1: 3, 2: 0, 3: -6 }; // 3 = packaged catalogue (Open Food Facts snapshot)
 
 /**
  * Search foods. Returns [{food, score}] sorted by score desc.
@@ -144,7 +242,7 @@ export function search(query, opts = {}) {
     else {
       const starts = e.keys.some((k) => k.startsWith(qCore + ' ') || k.startsWith(qCore));
       const allWhole = qTokens.length && qTokens.every((t) => e.tokens.has(t));
-      const allPrefix = qTokens.length && qTokens.every((t) => t.length >= 2 && [...e.tokens].some((x) => x.startsWith(t)));
+      const allPrefix = qTokens.length && qTokens.every((t) => t.length >= 2 && e.tokArr.some((x) => x.startsWith(t)));
       if (starts && allWhole) score = 84;
       else if (allWhole) score = qTokens.length === 1 ? 62 : 74; // a lone word buried inside a longer alias is weak evidence
       else if (starts) score = 68;
@@ -154,7 +252,7 @@ export function search(query, opts = {}) {
         if (sim >= 0.55) score = 30 + sim * 30;
         else if (qTokens.length > 1) {
           // partial token match: at least half of tokens present
-          const hits = qTokens.filter((t) => e.tokens.has(t) || [...e.tokens].some((x) => x.startsWith(t) && t.length >= 3)).length;
+          const hits = qTokens.filter((t) => e.tokens.has(t) || (t.length >= 3 && e.tokArr.some((x) => x.startsWith(t)))).length;
           if (hits >= Math.ceil(qTokens.length / 2)) score = 20 + (hits / qTokens.length) * 25;
         }
       }

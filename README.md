@@ -12,7 +12,7 @@ A fast, offline-first calorie tracker built around **Indian food**: 2,100+ foods
 |---|---|
 | 🎤 Voice & natural language | "2 roti and a katori of dal", "do idli aur sambar", "दो रोटी और दाल", "protein shake 130 calories" |
 | 🏷️ Label calories win | If you say/type the calories from a pack, that number is used and macros are scaled to match |
-| 🔎 Search 2,171 foods | Phonetic matching: *chapathi / chapati / रोटी / dhal / daal* all work; category browsing; veg / egg / non-veg filter |
+| 🔎 Search 5,300+ foods | Phonetic matching: *chapathi / chapati / रोटी / dhal / daal* all work; category browsing; veg / egg / non-veg filter |
 | 🎯 Daily target ring | Remaining calories shrink as you log; macro bars for protein, carbs, fat, fibre |
 | 🔥 Streaks & calendar | Consecutive logging days, best streak, on-target days, month grid coloured by intake, 14-day chart |
 | ⚖️ BMI / BMR / TDEE | Asian-Indian BMI cut-offs, Mifflin-St Jeor, ICMR-NIN 2020 reference (incl. pregnancy/lactation) |
@@ -23,6 +23,8 @@ A fast, offline-first calorie tracker built around **Indian food**: 2,100+ foods
 | ✏️ Editable foods | Change any preloaded food's nutrition; saved on-device and used everywhere |
 | 🗣️ Spoken nutrition | "protein shake 130 kcal and 27 g protein" creates a reusable custom food |
 | 🌍 Ethnicity-aware BMI | Asian (ICMR / WHO Asia-Pacific) vs WHO international cut-offs |
+| 🌐 Self-updating database | App checks `data/version.json` on GitHub Pages at launch and downloads a newer food DB (gzip, ~110 KB) into IndexedDB — no app release needed |
+| 🔍 Online fallback | "Search online (Open Food Facts)" for packaged/branded items; results are saved as custom foods |
 | 📴 Offline PWA | Service worker caches the app + database; installs to the home screen; in-app "Update now" prompt |
 
 ## Run locally
@@ -58,11 +60,14 @@ android/             Capacitor Android project
 
 Built by `node data-build/build.mjs` from three tiers (see [DATA_SOURCES.md](DATA_SOURCES.md)):
 
-1. **Curated** (1,035) — common dishes, snacks, sweets, drinks, packaged foods with real Indian household portions; textbook-aligned rows tagged `nh`.
-2. **INDB** (661) — Indian Nutrient Databank recipes (per 100 g). Fried recipes whose energy is inflated by the full frying-oil quantity are dropped in favour of curated entries; rows with inconsistent macros are dropped.
-3. **IFCT 2017** (475) — ICMR-NIN raw foods (fruits, vegetables, grains, pulses, meat, fish…) with Hindi/Tamil names as search aliases.
+1. **Curated** (1,683) — common dishes, regional specialities (NE, Kashmir, Bihar/Odisha/Bengal, Konkan/Goa, South, Rajasthan/Gujarat, Sindhi/Parsi/Bohri), packaged & branded products, restaurant-chain menus, international dishes; textbook-aligned rows tagged `nh`.
+2. **INDB** (659) — Indian Nutrient Databank recipes (per 100 g). Fried recipes whose energy is inflated by the full frying-oil quantity are dropped in favour of curated entries; rows with inconsistent macros are dropped.
+3. **IFCT 2017** (474) — ICMR-NIN raw foods (fruits, vegetables, grains, pulses, meat, fish…) with Hindi/Tamil names as search aliases.
+4. **Packaged catalogue** (2,489) — Open Food Facts products sold in India (the same SKUs you find on Zepto/Instamart/Blinkit: Amul, Britannia, Nestlé, ITC, Haldiram's, PepsiCo…), filtered to complete label nutrition, Atwater-checked and deduped. Snapshot via `node data-build/fetch-off.mjs`; shipped as a separate `foods-off.json.gz` (~90 KB) that loads lazily after the first screen so startup stays instant. Ranked below curated foods.
 
-The build validates every row (unique ids, numeric ranges, Atwater energy check, fibre ≤ carbs) and writes a report to `data-build/build-report.txt`.
+The build validates every row (unique ids, numeric ranges, Atwater energy check, fibre ≤ carbs), writes `foods.json`, `foods.json.gz` and `version.json` (timestamp version), and a report to `data-build/build-report.txt`.
+
+**Updating the database without an app release:** edit/add rows in `data-build/curated/`, run `node data-build/build.mjs`, commit and push. GitHub Pages publishes the new `version.json`; every installed copy (web and APK) downloads the new gzip on its next launch and shows "Food database updated".
 
 ## Tests
 
