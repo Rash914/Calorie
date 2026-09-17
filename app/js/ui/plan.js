@@ -12,15 +12,15 @@ export function render(root) {
   const s = store.get();
   const p = s.profile;
   const b = calc.bmi(p.weightKg, p.heightCm);
-  const cat = calc.bmiCategory(b);
-  const [lo, hi] = calc.healthyWeightRange(p.heightCm);
+  const cat = calc.bmiCategory(b, p.ethnicity);
+  const [lo, hi] = calc.healthyWeightRange(p.heightCm, p.ethnicity);
   const T = Math.round(calc.tdee(p)), B = Math.round(calc.bmr(p));
 
   // BMI card
   root.append(h('div', { class: 'card' },
     h('div', { class: 'row between' }, h('h3', null, 'Body'), h('button', { class: 'btn sm secondary', onclick: () => navigate('me') }, icon('edit', 14), 'Edit profile')),
     h('div', { class: 'row mt', style: { gap: '16px' } },
-      h('div', { class: 'gauge', style: { width: '150px', flex: 'none' } }, gauge(b)),
+      h('div', { class: 'gauge', style: { width: '150px', flex: 'none' } }, gauge(b, p.ethnicity)),
       h('div', { class: 'grow' },
         h('div', { style: { fontSize: '34px', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1 } }, fmt(b, 1), h('span', { class: 'muted', style: { fontSize: '13px', fontWeight: 700 } }, ' BMI')),
         h('div', { class: 'badge mt', style: { background: `color-mix(in srgb, ${cat.color} 15%, transparent)`, color: cat.color } }, cat.label),
@@ -30,7 +30,7 @@ export function render(root) {
       h('div', { class: 'stat' }, h('div', { class: 'v', style: { fontSize: '18px' } }, fmt(B)), h('div', { class: 'l' }, 'BMR kcal')),
       h('div', { class: 'stat' }, h('div', { class: 'v', style: { fontSize: '18px' } }, fmt(T)), h('div', { class: 'l' }, 'Maintenance')),
       h('div', { class: 'stat' }, h('div', { class: 'v', style: { fontSize: '18px' } }, fmt(calc.icmrReference(p))), h('div', { class: 'l' }, 'ICMR 2020 ref'))),
-    h('p', { class: 'faint tiny mt' }, 'BMI uses Asian-Indian cut-offs (23 overweight, 25 obese). Maintenance = Mifflin-St Jeor BMR × activity. ICMR 2020 is the population RDA for your sex & activity, for reference only.')
+    h('p', { class: 'faint tiny mt' }, `BMI scale for ${calc.bmiScale(p.ethnicity).label}: ${calc.bmiScale(p.ethnicity).note} (change ethnicity in Me). Maintenance = Mifflin-St Jeor BMR × activity. ICMR 2020 is the population RDA for your sex & activity, for reference only.`)
   ));
 
   // active plan
@@ -89,7 +89,7 @@ function renderTarget(card, root) {
     if (targetW == null) { hint.textContent = 'Enter a target to see plans.'; return; }
     if (targetW < 30 || targetW > 300) { hint.textContent = 'That target looks unrealistic.'; return; }
     const tBmi = calc.bmi(targetW, p.heightCm);
-    const tc = calc.bmiCategory(tBmi);
+    const tc = calc.bmiCategory(tBmi, p.ethnicity);
     hint.textContent = `${round(targetW, 1)} kg → BMI ${round(tBmi, 1)} (${tc.label}). ${tBmi < 18.5 ? '⚠️ Below the healthy range — consider a higher target.' : ''}`;
     const r = calc.buildPlans(p, targetW);
     const title = r.direction === 'lose' ? `Lose ${Math.abs(r.diff)} kg` : r.direction === 'gain' ? `Gain ${Math.abs(r.diff)} kg` : 'Maintain';
@@ -160,11 +160,12 @@ function lineChart(w) {
   return el;
 }
 
-function gauge(b) {
-  // semicircle gauge 15..35
+function gauge(b, ethnicity) {
+  // semicircle gauge 15..40, segments follow the ethnicity's cut-offs
   const W = 150, H = 92, cx = 75, cy = 80, r = 62;
-  const segs = [[15, 18.5, 'var(--blue)'], [18.5, 23, 'var(--green)'], [23, 25, 'var(--amber)'], [25, 30, 'var(--orange)'], [30, 35, 'var(--red)']];
-  const ang = (v) => Math.PI + (Math.min(35, Math.max(15, v)) - 15) / 20 * Math.PI;
+  const c = calc.bmiScale(ethnicity).cuts;
+  const segs = [[15, c[0], 'var(--blue)'], [c[0], c[1], 'var(--green)'], [c[1], c[2], 'var(--amber)'], [c[2], c[3], 'var(--orange)'], [c[3], 40, 'var(--red)']];
+  const ang = (v) => Math.PI + (Math.min(40, Math.max(15, v)) - 15) / 25 * Math.PI;
   const pt = (a, rr) => [cx + rr * Math.cos(a), cy + rr * Math.sin(a)];
   const el = svg('svg', { viewBox: `0 0 ${W} ${H}` });
   for (const [a, bb, col] of segs) {
@@ -174,6 +175,6 @@ function gauge(b) {
   const [nx, ny] = pt(ang(b), r - 2);
   el.append(svg('line', { x1: cx, y1: cy, x2: nx, y2: ny, stroke: 'var(--text)', 'stroke-width': 3, 'stroke-linecap': 'round' }));
   el.append(svg('circle', { cx, cy, r: 5, fill: 'var(--text)' }));
-  el.append(svg('text', { x: 12, y: H - 2, 'font-size': 9, fill: 'var(--faint)' }, '15'), svg('text', { x: W - 22, y: H - 2, 'font-size': 9, fill: 'var(--faint)' }, '35'));
+  el.append(svg('text', { x: 12, y: H - 2, 'font-size': 9, fill: 'var(--faint)' }, '15'), svg('text', { x: W - 22, y: H - 2, 'font-size': 9, fill: 'var(--faint)' }, '40'));
   return el;
 }

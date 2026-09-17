@@ -10,11 +10,13 @@ import * as log from './ui/log.js';
 import * as calendar from './ui/calendar.js';
 import * as plan from './ui/plan.js';
 import * as me from './ui/me.js';
+import * as scale from './ui/scale.js';
+import { creditText, verifyCredit, CREDIT_LABEL } from './credit.js';
 import { openOnboarding } from './ui/onboarding.js';
 import { openVoiceSheet } from './ui/add.js';
 
-const VIEWS = { home, log, calendar, plan, me };
-const TABS = [['home', 'Home', 'home'], ['log', 'Log', 'search'], ['calendar', 'Calendar', 'calendar'], ['plan', 'Plan', 'target'], ['me', 'Me', 'user']];
+const VIEWS = { home, log, calendar, plan, scale, me };
+const TABS = [['home', 'Home', 'home'], ['log', 'Log', 'search'], ['calendar', 'Calendar', 'calendar'], ['plan', 'Plan', 'target'], ['scale', 'Scale', 'scale'], ['me', 'Me', 'user']];
 
 function logoSvg() {
   const s = icon('leaf', 20); s.setAttribute('stroke-width', '2.2'); return s;
@@ -38,7 +40,7 @@ function render() {
   document.querySelectorAll('.tabbar button[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
   const root = $('#view');
   try { VIEWS[view].render(root, params); } catch (e) { console.error(e); clear(root); root.append(h('div', { class: 'card' }, h('h3', null, 'Something went wrong'), h('p', { class: 'muted small mt' }, String(e?.message || e)))); }
-  $('.fab').hidden = view === 'me' || view === 'plan';
+  $('.fab').hidden = view === 'me' || view === 'plan' || view === 'scale';
   window.scrollTo({ top: 0 });
   updateStreak();
 }
@@ -50,6 +52,11 @@ async function updateStreak() {
 }
 
 async function boot() {
+  if (!(await verifyCredit())) {
+    // credit line was tampered with → refuse to run
+    document.body.replaceChildren(h('div', { class: 'card', style: { margin: '40px auto', maxWidth: '420px', textAlign: 'center' } }, h('h3', null, 'This copy of the app has been modified'), h('p', { class: 'muted small mt' }, 'Integrity check failed. Please install the app from the official link.')));
+    return;
+  }
   applyTheme();
   loadWebFont();
   shell();
@@ -81,13 +88,26 @@ function loadWebFont() {
 
 function registerSW() {
   if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloading) return; reloading = true; location.reload(); });
   navigator.serviceWorker.register('./sw.js').then((reg) => {
+    const offer = (sw) => {
+      const wrap = h('div', { class: 'toast-wrap' });
+      wrap.append(h('div', { class: 'toast', style: { display: 'flex', gap: '10px', alignItems: 'center' } }, 'A new version is ready.',
+        h('button', { class: 'btn sm primary', onclick: () => { sw.postMessage({ type: 'SKIP_WAITING' }); wrap.remove(); } }, 'Update now'),
+        h('button', { class: 'btn sm', style: { color: '#fff' }, onclick: () => wrap.remove() }, 'Later')));
+      document.body.append(wrap);
+    };
+    if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
     reg.addEventListener('updatefound', () => {
       const nw = reg.installing;
-      nw?.addEventListener('statechange', () => { if (nw.state === 'installed' && navigator.serviceWorker.controller) toast('Update ready — reopen the app to get the latest version.', '', 5000); });
+      nw?.addEventListener('statechange', () => { if (nw.state === 'installed' && navigator.serviceWorker.controller) offer(nw); });
     });
+    // check for updates whenever the app comes back to the foreground
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
   }).catch((e) => console.warn('sw', e));
 }
+export const credit = () => `${CREDIT_LABEL} ${creditText()}`;
 
 // PWA install prompt (Android/desktop Chrome)
 let deferredInstall = null;

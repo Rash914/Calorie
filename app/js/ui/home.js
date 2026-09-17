@@ -45,7 +45,8 @@ export function render(root) {
   root.append(h('div', { class: 'card mt' },
     h('div', { class: 'row between mb' }, h('h3', null, 'Macros'), h('span', { class: 'muted small' }, 'today vs target')),
     h('div', { class: 'col' },
-      macroBar('Protein', totals.p, macros.p, 'p'), macroBar('Carbs', totals.cb, macros.cb, 'c'), macroBar('Fat', totals.f, macros.f, 'f'), macroBar('Fibre', totals.fb, macros.fb, 'fb'))
+      macroBar('Protein', totals.p, macros.p, 'p'), macroBar('Carbs', totals.cb, macros.cb, 'c'), macroBar('Fat', totals.f, macros.f, 'f'), macroBar('Fibre', totals.fb, macros.fb, 'fb'),
+      waterBar(store.waterFor(date), calc.waterTarget(s.profile)))
   ));
 
   // quick actions
@@ -71,6 +72,7 @@ export function render(root) {
     }
     root.append(box);
   }
+  root.append(waterRow(date, s.profile, () => render(root)));
 
   // insight
   const avg = calc.weeklyAverage(s.logs);
@@ -81,4 +83,29 @@ export function render(root) {
 }
 import * as foods from '../foods.js';
 function catOf(id) { return foods.getFood(id)?.c || 'custom'; }
+
+function waterBar(ml, target) {
+  const pct = target > 0 ? Math.min(100, (ml / target) * 100) : 0;
+  const fill = h('i', { class: 'w' });
+  requestAnimationFrame(() => { fill.style.width = pct + '%'; });
+  return h('div', { class: 'macro' },
+    h('div', { class: 'lbl' }, h('span', null, '💧 Water'), h('span', { class: 'num' }, fmtMl(ml), h('span', { class: 'faint' }, ` / ${fmtMl(target)}`))),
+    h('div', { class: 'bar' }, fill));
+}
+function fmtMl(ml) { return ml >= 1000 ? `${Math.round(ml / 100) / 10} L` : `${Math.round(ml)} ml`; }
+const WATER_BTNS = [['+100 ml', 100, 'sip'], ['+150 ml', 150, 'cup'], ['+250 ml', 250, 'glass'], ['+500 ml', 500, 'bottle'], ['+750 ml', 750, 'big bottle'], ['+1 L', 1000, 'litre']];
+function waterRow(date, profile, rerender) {
+  const ml = store.waterFor(date), target = calc.waterTarget(profile);
+  const pct = Math.min(100, Math.round((ml / target) * 100));
+  const fill = h('i', { class: 'w' });
+  requestAnimationFrame(() => { fill.style.width = pct + '%'; });
+  return h('div', { class: 'meal water' },
+    h('div', { class: 'meal-head' }, h('span', null, '💧'), h('span', { class: 't' }, 'Water'), h('span', { class: 'k' }, `${fmtMl(ml)} / ${fmtMl(target)}`)),
+    h('div', { style: { padding: '12px 14px' } },
+      h('div', { class: 'bar' }, fill),
+      h('div', { class: 'row wrap mt', style: { gap: '6px' } },
+        ...WATER_BTNS.map(([l, v, t]) => h('button', { class: 'chip', type: 'button', title: t, onclick: () => { store.addWater(date, v); rerender(); } }, l)),
+        h('button', { class: 'chip', type: 'button', title: 'Undo last glass', disabled: !ml, onclick: () => { store.addWater(date, -250); rerender(); } }, '−250 ml')),
+      h('div', { class: 'faint tiny mt' }, ml >= target ? '🎉 Target reached — well hydrated.' : `${pct}% of today's target · glass = 250 ml, cup = 150 ml. Target ≈ 35 ml per kg + activity.`)));
+}
 export { openFoodSheet };

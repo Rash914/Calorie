@@ -22,7 +22,7 @@ export function openFoodSheet(food, { date = todayKey(), meal, onAdded } = {}) {
     clear(kcalBig);
     kcalBig.append(h('div', null, h('div', { class: 'num', style: { fontSize: '34px', fontWeight: 800, letterSpacing: '-0.02em' } }, fmt(Math.round(n.k)), h('span', { class: 'muted', style: { fontSize: '14px', fontWeight: 700 } }, ' kcal')), perLine),
       h('span', { class: 'badge blue' }, `${fmt(grams())} g`));
-    perLine.textContent = `${food.k} kcal per 100 g · ${sourceLabel(food)}`;
+    perLine.textContent = `${Math.round(food.k)} kcal per 100 g · ${food.edited ? 'edited by you' : sourceLabel(food)}`;
     clear(totals);
     for (const [lbl, v, cls] of [['Protein', n.p, 'p'], ['Carbs', n.cb, 'c'], ['Fat', n.f, 'f']]) {
       totals.append(h('div', { class: 'stat' }, h('div', { class: 'v', style: { fontSize: '18px' } }, fmt(v, 1), h('span', { class: 'muted small' }, ' g')), h('div', { class: 'l' }, lbl)));
@@ -42,6 +42,9 @@ export function openFoodSheet(food, { date = todayKey(), meal, onAdded } = {}) {
         h('div', { class: 'grid-2 mt' }, field('Serving', servSel), field('Quantity', qtyEl)),
         h('div', { class: 'mt' }, field('Or exact amount (g / ml)', gramsInput)),
         totals,
+        h('div', { class: 'row between mt' },
+          h('span', { class: 'muted small' }, food.edited ? 'Edited on this device' : 'Values not right for your version?'),
+          h('button', { class: 'btn sm secondary', type: 'button', onclick: () => { s.close(); openEditNutrition(food, { onDone: () => openFoodSheet(foods.getFood(food.id) || food, { date, meal, onAdded }) }); } }, icon('edit', 14), food.edited ? 'Edit / reset' : 'Edit nutrition')),
         h('div', { class: 'mt' }, field('Meal', mealSeg(meal, (v) => { meal = v; })))
       );
       render();
@@ -58,6 +61,40 @@ export function openFoodSheet(food, { date = todayKey(), meal, onAdded } = {}) {
     ]
   });
   return s;
+}
+/** Edit the nutrition of a preloaded food (saved as a per-device override) or a custom food. */
+export function openEditNutrition(food, { onDone } = {}) {
+  const serv = (food.s || [['100 g', 100]])[0];
+  const g = serv[1];
+  const per = (v) => Math.round((v * g) / 100 * 10) / 10;
+  const mk = (v) => h('input', { class: 'input', type: 'number', inputmode: 'decimal', min: 0, step: 'any', value: String(per(v)) });
+  const k = mk(food.k), pr = mk(food.p), cb = mk(food.cb), f = mk(food.f), fb = mk(food.fb || 0);
+  const name = h('input', { class: 'input', value: food.n, maxlength: 80 });
+  const isCustom = food.src === 'custom';
+  const base = isCustom ? null : foods.baseFood(food.id);
+  const actions = [{ label: 'Cancel', onClick: ({ close }) => close() }];
+  if (!isCustom && food.edited) actions.push({ label: 'Reset', kind: 'danger', onClick: ({ close }) => { store.clearOverride(food.id); toast('Restored original values'); close(); onDone?.(); } });
+  actions.push({ label: 'Save', kind: 'primary', onClick: ({ close }) => {
+    const nums = [k, pr, cb, f, fb].map((i) => parseFloat(i.value));
+    if (nums.some((n) => !Number.isFinite(n) || n < 0)) { toast('Enter valid numbers', 'error'); return; }
+    const scale = 100 / g;
+    const vals = { k: nums[0] * scale, p: nums[1] * scale, cb: nums[2] * scale, f: nums[3] * scale, fb: nums[4] * scale };
+    const nm = name.value.trim() || food.n;
+    if (isCustom) store.update((st) => { const c = st.custom.find((x) => x.id === food.id); if (c) Object.assign(c, vals, { n: nm }); });
+    else store.setOverride(food.id, { ...vals, n: nm !== base?.n ? nm : undefined });
+    toast('Saved for this device', 'success'); close(); onDone?.();
+  } });
+  sheet({
+    title: 'Edit nutrition',
+    body: (el) => el.append(
+      h('p', { class: 'muted small mb' }, `Values per ${serv[0]}. Your edit replaces the preloaded values on this device (search, voice and logging all use it). Backups include it.`),
+      field('Name', name),
+      h('div', { class: 'grid-2 mt' }, field('Calories (kcal)', k), field('Protein (g)', pr)),
+      h('div', { class: 'grid-3 mt' }, field('Carbs (g)', cb), field('Fat (g)', f), field('Fibre (g)', fb)),
+      base ? h('p', { class: 'faint tiny mt' }, `Original: ${fmt(per(base.k))} kcal · P ${fmt(per(base.p), 1)} · C ${fmt(per(base.cb), 1)} · F ${fmt(per(base.f), 1)}`) : null
+    ),
+    actions
+  });
 }
 function sourceLabel(f) { return f.src === 'ifct' ? 'IFCT 2017 (NIN)' : f.src === 'indb' ? 'INDB recipe' : f.src === 'nh' ? 'Textbook-aligned' : f.src === 'custom' ? 'Your food' : 'Curated'; }
 
@@ -188,7 +225,7 @@ export function openVoiceSheet({ date = todayKey(), onAdded, startListening = tr
     clear(results);
     if (!parsed || !parsed.items.length) { results.append(h('div', { class: 'empty small' }, 'Nothing recognised yet.')); updateAction(); return; }
     parsed.items.forEach((it, idx) => {
-      const sub = it.food ? `${it.unitLabel} · ${fmt(it.grams)} g${it.kcalOverride != null ? ' · label calories' : ''}` : it.kcalOverride != null ? `${it.unitLabel} · label calories` : 'Not found — tap to choose a food';
+      const sub = it.newFood ? `${it.unitLabel} · will be saved as a new food (P ${fmt(it.p, 1)} · C ${fmt(it.cb, 1)} · F ${fmt(it.f, 1)})` : it.food ? `${it.unitLabel} · ${fmt(it.grams)} g${it.kcalOverride != null ? ' · label calories' : ''}` : it.kcalOverride != null ? `${it.unitLabel} · label calories` : 'Not found — tap to choose a food';
       const row = h('div', { class: 'item' },
         h('i', { class: `conf ${it.confidence}`, title: it.confidence }),
         h('div', { class: 'grow' }, h('div', { class: 'name' }, it.name), h('div', { class: 'sub' }, sub), h('div', { class: 'tiny faint' }, `“${it.raw}”`)),
@@ -254,7 +291,14 @@ export function openVoiceSheet({ date = todayKey(), onAdded, startListening = tr
         let n = 0, total = 0;
         for (const it of parsed.items) {
           if (!(it.k > 0 || it.food)) continue;
-          store.addEntry(date, { meal, name: it.name, foodId: it.food?.id || null, qty: it.qty, unit: it.unitLabel, g: it.grams, k: it.k, p: it.p, cb: it.cb, f: it.f, fb: it.fb, src: it.kcalOverride != null ? 'quick' : 'voice' });
+          let foodId = it.food?.id || null, unit = it.unitLabel;
+          if (it.newFood) {
+            // "protein shake 130 kcal 27 g protein" → becomes a reusable custom food (per serving = what was spoken)
+            const q = it.qty || 1;
+            const cf = store.addCustomFood({ n: it.name, v: it.food?.v || 1, k: (it.k / q), p: it.p / q, cb: it.cb / q, f: it.f / q, fb: it.fb / q, s: [['1 serving (100 g)', 100]] });
+            foodId = cf.id; unit = `${q} × 1 serving`;
+          }
+          store.addEntry(date, { meal, name: it.name, foodId, qty: it.qty, unit, g: it.grams, k: it.k, p: it.p, cb: it.cb, f: it.f, fb: it.fb, src: it.spoken ? 'quick' : 'voice' });
           n++; total += it.k;
         }
         toast(`Added ${n} item${n === 1 ? '' : 's'} · ${fmt(total)} kcal`, 'success');

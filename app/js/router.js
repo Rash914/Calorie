@@ -1,6 +1,6 @@
 // Tiny hash router: #home, #log, #calendar, #plan, #me
 import { emitter } from './util.js';
-export const VIEWS = ['home', 'log', 'calendar', 'plan', 'me'];
+export const VIEWS = ['home', 'log', 'calendar', 'plan', 'scale', 'me'];
 export const bus = emitter();
 let params = {};
 export function current() {

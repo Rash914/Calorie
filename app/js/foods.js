@@ -66,20 +66,42 @@ export async function load(url = './data/foods.json') {
   if (!res.ok) throw new Error('Could not load food database');
   DB = await res.json();
   rebuildIndex();
-  store.bus.on('change', rebuildCustom);
+  store.bus.on('change', () => { rebuildCustom(); refreshOverrides(); });
   return DB;
 }
-function entry(f) {
+/** Apply the device's edits (store.overrides) on top of a preloaded food. */
+function merged(base) {
+  const o = store.getOverride(base.id);
+  if (!o) return base;
+  return { ...base, k: o.k, p: o.p, cb: o.cb, f: o.f, fb: o.fb, n: o.n || base.n, edited: true };
+}
+function entry(base) {
+  const f = merged(base);
   const keys = [norm(f.n), ...(f.a || []).map(norm)].filter(Boolean);
   const tokens = new Set(keys.flatMap((k) => k.split(' ')));
-  return { f, keys, tokens, full: keys.join(' | '), bg: bigrams(keys[0]) };
+  return { f, base, keys, tokens, full: keys.join(' | '), bg: bigrams(keys[0]) };
 }
 function rebuildIndex() {
   INDEX = [];
   byId.clear();
   for (const f of store.get().custom) { INDEX.push(entry(f)); byId.set(f.id, f); }
-  for (const f of DB.foods) { INDEX.push(entry(f)); byId.set(f.id, f); }
+  for (const f of DB.foods) { const e = entry(f); INDEX.push(e); byId.set(f.id, e.f); }
+  lastOverrides = ovStamp(store.get().overrides);
 }
+let lastOverrides = null;
+const ovStamp = (ov) => Object.keys(ov).map((k) => k + ':' + (ov[k].t || 0) + ':' + ov[k].k).join('|');
+function refreshOverrides() {
+  const ov = store.get().overrides;
+  const stamp = ovStamp(ov);
+  if (stamp === lastOverrides) return;
+  lastOverrides = stamp;
+  for (let i = 0; i < INDEX.length; i++) {
+    const e = INDEX[i];
+    if (e.f.src === 'custom') continue;
+    if (ov[e.base.id] || e.f.edited) { INDEX[i] = entry(e.base); byId.set(e.base.id, INDEX[i].f); }
+  }
+}
+export const baseFood = (id) => INDEX.find((e) => e.base.id === id)?.base || null;
 function rebuildCustom() {
   // custom foods may change; cheap to rebuild only the custom section
   INDEX = INDEX.filter((e) => e.f.src !== 'custom');

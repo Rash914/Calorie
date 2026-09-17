@@ -4,6 +4,7 @@ import * as store from '../store.js';
 import * as calc from '../calc.js';
 import { sheet, toast, icon, field, segmented } from './components.js';
 import { profileForm } from './me.js';
+import { creditText, CREDIT_LABEL } from '../credit.js';
 
 export function openOnboarding({ onDone }) {
   let step = 0;
@@ -14,15 +15,16 @@ export function openOnboarding({ onDone }) {
   function paint() { steps.querySelectorAll('i').forEach((i, idx) => i.classList.toggle('on', idx <= step)); clear(body); body.append(steps); if (step === 0) s0(); else if (step === 1) s1(); else s2(); }
   function s0() {
     const form = profileForm(store.get().profile, { compact: false });
-    body.append(h('h2', null, 'Welcome to Aahar 🌿'), h('p', { class: 'muted small mb' }, 'Tell us about yourself so we can estimate how much you need each day. Everything stays on this device.'),
+    body.append(h('h2', null, 'Welcome to Aahar 🌿'), h('p', { class: 'muted small mb' }, 'Tell us about yourself so we can set your daily calorie target. Everything stays on this device.'),
+      h('div', { class: 'card soft mb', style: { padding: '10px 12px' } }, h('div', { class: 'small' }, '⚠️ Please fill this in — the app needs it to work out your BMI, maintenance calories and plan. You can skip with ✕ and finish later in ', h('b', null, 'Me'), ' → Profile and ', h('b', null, 'Plan'), '.')),
       form.el,
       h('button', { class: 'btn primary block mt-lg', onclick: () => { const r = form.read(); if (r.error) { toast(r.error, 'error'); return; } profile = r.value; store.setProfile(profile); store.logWeight(profile.weightKg); step = 1; paint(); } }, 'Continue', icon('right', 16)));
   }
   function s1() {
     const p = store.get().profile;
     const b = calc.bmi(p.weightKg, p.heightCm);
-    const cat = calc.bmiCategory(b);
-    const [lo, hi] = calc.healthyWeightRange(p.heightCm);
+    const cat = calc.bmiCategory(b, p.ethnicity);
+    const [lo, hi] = calc.healthyWeightRange(p.heightCm, p.ethnicity);
     const T = Math.round(calc.tdee(p));
     let mode = 'weight';
     const input = h('input', { class: 'input lg', type: 'number', inputmode: 'decimal', step: '0.1', placeholder: `e.g. ${round(Math.min(hi, Math.max(lo, p.weightKg - 5)))}` });
@@ -61,8 +63,13 @@ export function openOnboarding({ onDone }) {
         h('div', { class: 'option' }, '🎤', h('div', null, h('div', { class: 't' }, 'Speak your meals'), h('div', { class: 'd' }, 'Tap the mic: “2 roti, 1 katori dal, ek glass doodh”. Hindi works too.'))),
         h('div', { class: 'option' }, '🏷️', h('div', null, h('div', { class: 't' }, 'Say the label calories'), h('div', { class: 'd' }, '“Protein shake 130 calories” uses your number instead of ours.'))),
         h('div', { class: 'option' }, '📅', h('div', null, h('div', { class: 't' }, 'Keep the streak'), h('div', { class: 'd' }, 'Log at least one item a day. The calendar shows how each day went.')))),
-      h('button', { class: 'btn primary block mt-lg', onclick: () => { store.setSettings({ onboarded: true }); api.close(); onDone?.(); } }, 'Start tracking'));
+      h('button', { class: 'btn primary block mt-lg', onclick: () => { store.setSettings({ onboarded: true }); api.close(); onDone?.(); } }, 'Start tracking'),
+      h('p', { class: 'faint tiny center mt' }, `${CREDIT_LABEL} ${creditText()}`));
   }
-  api = sheet({ title: null, body: (el) => { el.append(body); paint(); }, onClose: () => { if (!store.get().settings.onboarded) { store.setSettings({ onboarded: true }); onDone?.(); } } });
+  api = sheet({ title: null, body: (el) => { el.append(body); paint(); }, onClose: () => { if (!store.get().settings.onboarded) { store.setSettings({ onboarded: true }); toast('Skipped — set your profile & plan any time from Me and Plan', '', 4000); onDone?.(); } } });
   api.el.querySelector('.grab').remove();
+  // explicit close (✕) so the popup is never a trap
+  const x = h('button', { class: 'btn icon secondary', 'aria-label': 'Skip setup', style: { position: 'absolute', top: '12px', right: '14px' }, onclick: () => api.close() }, icon('x', 18));
+  api.el.style.position = 'relative';
+  api.el.prepend(x);
 }

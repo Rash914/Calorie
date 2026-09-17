@@ -6,7 +6,9 @@ import * as foods from '../foods.js';
 import { icon, toast, confirm, field, segmented, sheet } from './components.js';
 import { applyTheme } from '../theme.js';
 import { navigate } from '../router.js';
+import { creditText, CREDIT_LABEL } from '../credit.js';
 
+export const APP_VERSION = '1.1.0';
 export function render(root) {
   clear(root);
   const s = store.get();
@@ -19,7 +21,7 @@ export function profileForm(p, { compact = false } = {}) {
   f.age = h('input', { class: 'input', type: 'number', inputmode: 'numeric', value: String(p.age), min: 10, max: 100 });
   f.heightCm = h('input', { class: 'input', type: 'number', inputmode: 'decimal', value: String(p.heightCm), min: 100, max: 250 });
   f.weightKg = h('input', { class: 'input', type: 'number', inputmode: 'decimal', step: '0.1', value: String(p.weightKg), min: 20, max: 400 });
-  let sex = p.sex, activity = p.activity, condition = p.condition;
+  let sex = p.sex, activity = p.activity, condition = p.condition, ethnicity = p.ethnicity || 'asian';
   const actList = h('div', { class: 'col', style: { gap: '6px' } });
   const renderAct = () => { clear(actList); for (const [k, v] of Object.entries(calc.ACTIVITY)) actList.append(h('button', { type: 'button', class: `option ${activity === k ? 'active' : ''}`, onclick: () => { activity = k; renderAct(); } }, h('div', null, h('div', { class: 't' }, v.label), h('div', { class: 'd' }, v.desc)))); };
   renderAct();
@@ -28,6 +30,10 @@ export function profileForm(p, { compact = false } = {}) {
     compact ? null : field('Name', f.name),
     field('Sex (for BMR)', segmented([{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }], sex, (v) => { sex = v; condWrap.hidden = v !== 'female'; })),
     h('div', { class: 'grid-3' }, field('Age', f.age), field('Height (cm)', f.heightCm), field('Weight (kg)', f.weightKg)),
+    field('Ethnicity (sets the BMI scale)', h('div', { class: 'col', style: { gap: '6px' } }, ...Object.entries(calc.ETHNICITY).map(([k, v]) => {
+      const b = h('button', { type: 'button', class: `option ${ethnicity === k ? 'active' : ''}`, onclick: () => { ethnicity = k; b.parentElement.querySelectorAll('.option').forEach((o) => o.classList.toggle('active', o === b)); } }, h('div', null, h('div', { class: 't' }, v.label), h('div', { class: 'd' }, v.desc)));
+      return b;
+    }))),
     field('Activity level', actList)
   );
   const condWrap = h('div', { hidden: sex !== 'female' }, field('Pregnancy / lactation (ICMR 2020 adds energy)', condSel));
@@ -39,7 +45,7 @@ export function profileForm(p, { compact = false } = {}) {
       if (!(age >= 10 && age <= 100)) return { error: 'Age must be 10–100' };
       if (!(hc >= 100 && hc <= 250)) return { error: 'Height must be 100–250 cm' };
       if (!(wk >= 20 && wk <= 400)) return { error: 'Weight must be 20–400 kg' };
-      return { value: { name: f.name.value.trim(), sex, age, heightCm: hc, weightKg: wk, activity, condition: sex === 'female' ? condition : 'none' } };
+      return { value: { name: f.name.value.trim(), sex, age, heightCm: hc, weightKg: wk, activity, ethnicity, condition: sex === 'female' ? condition : 'none' } };
     }
   };
 }
@@ -127,6 +133,7 @@ function aboutCard() {
       h('tr', null, h('td', null, 'Energy needs'), h('td', null, 'Mifflin-St Jeor BMR × activity; ICMR-NIN 2020 RDA shown for reference; +350 pregnancy, +600/+520 lactation')),
       h('tr', null, h('td', null, 'BMI'), h('td', null, 'Asian-Indian cut-offs: <18.5 under, 18.5–22.9 healthy, 23–24.9 overweight, ≥25 obese')),
       h('tr', null, h('td', null, 'Voice'), h('td', null, 'On-device/browser speech recognition (Web Speech API / Android). Audio is not stored by the app.'))),
-    h('p', { class: 'faint tiny mt' }, 'Values are estimates; restaurant and home portions vary a lot. This app does not provide medical advice.')
+    h('p', { class: 'faint tiny mt' }, 'Values are estimates; restaurant and home portions vary a lot. This app does not provide medical advice.'),
+    h('p', { class: 'small mt', style: { fontWeight: 700, color: 'var(--blue)' } }, `${CREDIT_LABEL} ${creditText()}`, h('span', { class: 'faint', style: { fontWeight: 500 } }, ` · v${APP_VERSION}`))
   );
 }

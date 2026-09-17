@@ -1,12 +1,14 @@
 // Service worker: precache the app shell + food DB, cache-first for same-origin assets, network-first for HTML.
-const VERSION = 'aahar-v1';
+const VERSION = 'aahar-509115365d';
 const SHELL = ['./', './index.html', './css/app.css', './manifest.webmanifest', './data/foods.json',
   './js/main.js', './js/util.js', './js/store.js', './js/foods.js', './js/parser.js', './js/speech.js', './js/calc.js', './js/router.js', './js/theme.js',
-  './js/ui/components.js', './js/ui/add.js', './js/ui/home.js', './js/ui/log.js', './js/ui/calendar.js', './js/ui/plan.js', './js/ui/me.js', './js/ui/onboarding.js',
+  './js/ui/components.js', './js/ui/add.js', './js/ui/home.js', './js/ui/log.js', './js/ui/calendar.js', './js/ui/plan.js', './js/ui/me.js', './js/ui/onboarding.js', './js/ui/scale.js', './js/credit.js',
   './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png'];
 
+self.addEventListener('message', (e) => { if (e.data?.type === 'SKIP_WAITING') self.skipWaiting(); });
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // bypass the HTTP cache so a new SW always precaches fresh files; activation waits for the user's "Update now"
+  e.waitUntil(caches.open(VERSION).then((c) => Promise.all(SHELL.map((u) => fetch(u, { cache: 'reload' }).then((r) => { if (!r.ok) throw new Error('precache ' + u); return c.put(u, r); })))));
 });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k)))).then(() => self.clients.claim()));

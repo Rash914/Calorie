@@ -27,16 +27,29 @@ export function bmi(weightKg, heightCm) {
   const m = heightCm / 100;
   return m > 0 ? weightKg / (m * m) : 0;
 }
-// Asian-Indian BMI cut-offs (ICMR / WHO Asia-Pacific)
-export function bmiCategory(b) {
-  if (b < 18.5) return { key: 'under', label: 'Underweight', color: 'var(--blue)' };
-  if (b < 23) return { key: 'normal', label: 'Healthy', color: 'var(--green)' };
-  if (b < 25) return { key: 'over', label: 'Overweight', color: 'var(--amber)' };
-  if (b < 30) return { key: 'obese1', label: 'Obese I', color: 'var(--orange)' };
+// BMI cut-offs depend on ethnicity: Asian (ICMR / WHO Asia-Pacific) vs WHO international
+export const ETHNICITY = {
+  asian: { label: 'Asian / South Asian', desc: 'Indian, Chinese, SE Asian… (higher body fat at the same BMI → stricter cut-offs)', cuts: [18.5, 23, 25, 30], healthyTop: 22.9, note: 'Asian cut-offs: 23 overweight, 25 obese' },
+  other: { label: 'Other', desc: 'European, African, Middle Eastern, Latin American… (WHO international scale)', cuts: [18.5, 25, 30, 35], healthyTop: 24.9, note: 'WHO cut-offs: 25 overweight, 30 obese' }
+};
+export const bmiScale = (ethnicity) => ETHNICITY[ethnicity] || ETHNICITY.asian;
+export function bmiCategory(b, ethnicity = 'asian') {
+  const c = bmiScale(ethnicity).cuts;
+  if (b < c[0]) return { key: 'under', label: 'Underweight', color: 'var(--blue)' };
+  if (b < c[1]) return { key: 'normal', label: 'Healthy', color: 'var(--green)' };
+  if (b < c[2]) return { key: 'over', label: 'Overweight', color: 'var(--amber)' };
+  if (b < c[3]) return { key: 'obese1', label: 'Obese I', color: 'var(--orange)' };
   return { key: 'obese2', label: 'Obese II', color: 'var(--red)' };
 }
 export function weightForBmi(targetBmi, heightCm) { const m = heightCm / 100; return targetBmi * m * m; }
-export function healthyWeightRange(heightCm) { return [weightForBmi(18.5, heightCm), weightForBmi(22.9, heightCm)]; }
+export function healthyWeightRange(heightCm, ethnicity = 'asian') { return [weightForBmi(18.5, heightCm), weightForBmi(bmiScale(ethnicity).healthyTop, heightCm)]; }
+/** Daily water target (ml): ~35 ml/kg, more for activity and lactation, clamped 1.5–4 L */
+export function waterTarget(p) {
+  let ml = 35 * (p.weightKg || 70);
+  ml += { sedentary: 0, light: 250, moderate: 500, active: 750, very: 1000 }[p.activity] || 0;
+  if (p.condition === 'pregnant') ml += 300; else if (p.condition && p.condition.startsWith('lactating')) ml += 700;
+  return Math.round(Math.min(4000, Math.max(1500, ml)) / 50) * 50;
+}
 
 /** Mifflin–St Jeor BMR */
 export function bmr(p) {

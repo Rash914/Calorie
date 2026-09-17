@@ -170,6 +170,9 @@ main#view { flex: 1; width: 100%; max-width: 640px; margin: 0 auto; padding: 14p
 .bar > i.f { background: linear-gradient(90deg, #22c55e, #86efac); }
 .bar > i.fb { background: linear-gradient(90deg, #8b5cf6, #c4b5fd); }
 .bar > i.over { background: linear-gradient(90deg, var(--amber), var(--orange)); }
+.bar > i.w { background: linear-gradient(90deg, #38bdf8, #1d6fe8); }
+.meal.water .chip { padding: 8px 12px; font-weight: 700; color: var(--blue); border-color: color-mix(in srgb, var(--blue) 35%, var(--line-2)); background: color-mix(in srgb, var(--blue) 6%, var(--surface)); }
+.meal.water .chip:disabled { opacity: .4; }
 .macro { display: flex; flex-direction: column; gap: 5px; }
 .macro .lbl { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--muted); }
 

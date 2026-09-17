@@ -35,11 +35,32 @@ const FILLER = [
   'i had', 'i have had', 'i ate', 'i have eaten', 'i have', 'i took', 'i drank', 'i also had', 'i also ate', 'ive had', 'had', 'ate', 'eaten', 'drank', 'took',
   'for breakfast', 'for lunch', 'for dinner', 'for snacks', 'for snack', 'as a snack', 'in the morning', 'in the afternoon', 'in the evening', 'at night', 'this morning', 'tonight', 'today', 'yesterday',
   'maine', 'mene', 'mai ne', 'main ne', 'khaya', 'khayi', 'khaye', 'kha liya', 'khaya hai', 'piya', 'pi li', 'pi liya', 'liya', 'liye', 'li', 'aaj', 'subah', 'subah me', 'dopahar me', 'dopahar', 'sham ko', 'sham', 'raat ko', 'raat', 'naashte me', 'nashte me', 'nashta', 'naashta', 'lunch me', 'dinner me', 'ko', 'mein', 'me', 'tha', 'the', 'thi',
-  'some', 'a bit of', 'a little', 'little', 'bit of', 'just', 'about', 'around', 'approximately', 'approx', 'roughly', 'like', 'only', 'nearly', 'almost', 'please', 'add', 'log', 'record', 'note', 'okay', 'ok', 'so', 'um', 'uh', 'hmm', 'thoda', 'thodi', 'thode', 'sa', 'si', 'se', 'wala', 'wali', 'wale', 'jo', 'that', 'which', 'it', 'was', 'is', 'were', 'of', 'ka', 'ki', 'ke'
+  'some', 'a bit of', 'a little', 'little', 'bit of', 'just', 'about', 'around', 'approximately', 'approx', 'roughly', 'like', 'only', 'nearly', 'almost', 'please', 'add', 'log', 'record', 'note', 'okay', 'ok', 'so', 'um', 'uh', 'hmm', 'thoda', 'thodi', 'thode', 'sa', 'si', 'se', 'wala', 'wali', 'wale', 'jo', 'that', 'which', 'it', 'was', 'is', 'were', 'of', 'ka', 'ki', 'ke', 'in', 'my', 'our', 'from', 'mera', 'meri', 'mere'
 ].sort((a, b) => b.length - a.length);
 const FILLER_RES = FILLER.map((f) => new RegExp('\\s' + f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s', 'g'));
 const SPLIT_STRONG = /\s*(?:,|;|\band\b|\baur\b|\bplus\b|&|\bthen\b|\bafter that\b|\balso\b|\balong with\b|\bke saath\b|\bke sath\b|\bsaath me\b|\bsath me\b|\bfollowed by\b|\bor\b|\bund\b|\bor\b|\+)\s*/i;
-const KCAL_RE = /(\d+(?:\.\d+)?)\s*(?:k\s?cal(?:ories?|s)?|kcals?|cal(?:ories?|s)?|kailori|kaloree|kalori|कैलोरी|केलोरी|कैलोरीज)\b/i;
+const KCAL_RE = /(\d+(?:\.\d+)?)\s*(?:k\s?cal(?:ories?|s)?|kcals?|kilo\s?calories?|kilocalories?|cal(?:ories?|s)?|kailori|kaloree|kalori|कैलोरी|केलोरी|कैलोरीज)\b(?:\s+(?:of\s+)?energy)?/i;
+// "27 g protein", "27 grams of protein", "protein 27 g", "protein of 27 grams"
+const MACRO_WORDS = { p: 'proteins?|protien|प्रोटीन', cb: 'carbs?|carbohydrates?|carbo', f: 'fats?', fb: 'fibre|fiber|fibres?' };
+const GRAM = '(?:g|gm|gms|grams?)';
+const MACRO_RES = Object.entries(MACRO_WORDS).map(([k, w]) => [k,
+  new RegExp('(\\d+(?:\\.\\d+)?)\\s*' + GRAM + '\\s*(?:of\\s+)?(?:' + w + ')\\b', 'i'),
+  new RegExp('\\b(?:' + w + ')\\s*(?:of|content|:)?\\s*(\\d+(?:\\.\\d+)?)\\s*' + GRAM + '\\b', 'i')]);
+const ALLW = Object.values(MACRO_WORDS).join('|');
+const NUT_ANY = new RegExp(KCAL_RE.source + '|(?:\\d+(?:\\.\\d+)?\\s*' + GRAM + '\\s*(?:of\\s+)?(?:' + ALLW + ')\\b)|(?:\\b(?:' + ALLW + ')\\s*(?:of|content|:)?\\s*\\d+(?:\\.\\d+)?\\s*' + GRAM + '\\b)', 'i');
+/** Pull "130 kcal", "27 g protein" … out of a segment. Returns [cleanedSegment, {k,p,cb,f,fb}|null] */
+function extractNutrition(seg) {
+  let nut = null, s = seg;
+  const km = KCAL_RE.exec(s);
+  if (km) { nut = { k: parseFloat(km[1]) }; s = s.replace(km[0], ' '); }
+  for (const [k, re1, re2] of MACRO_RES) {
+    const m = re1.exec(s) || re2.exec(s);
+    if (m) { nut = nut || {}; nut[k] = parseFloat(m[1]); s = s.replace(m[0], ' '); }
+  }
+  if (nut) s = s.replace(/\b(of|worth|around|about|approx|approximately|which had|which has|that had|having|with|and|contains?|containing|has|had|per serving|each|energy|wala|wali|ka|ki|ke|jo|tha|thi|the)\b/gi, ' ').replace(/\s+/g, ' ').trim();
+  return [s, nut];
+}
+const isNutritionOnly = (seg) => NUT_ANY.test(seg) && !extractNutrition(seg)[0].replace(/\b(a|an|and|of|with|energy|serving|per)\b/g, '').trim();
 // words that describe *a* food rather than *the* food – never auto-match these to a database item
 const GENERIC = new Set(['snack', 'snacks', 'snek', 'food', 'foods', 'meal', 'meals', 'something', 'stuff', 'item', 'items', 'khana', 'khaana', 'nashta', 'naashta', 'lunch', 'dinner', 'breakfast', 'dish', 'sweets', 'sweet', 'mithai', 'dessert', 'drink', 'drinks', 'juice', 'shake', 'supplement', 'namkeen', 'chips', 'biscuit', 'biscuits', 'cookie', 'cookies', 'chocolate', 'fruit', 'fruits', 'veg', 'vegetables', 'sabzi', 'sabji', 'curry', 'rice', 'bread', 'salad', 'soup'].map((w) => norm(w)));
 const MEAL_HINT = [
@@ -74,9 +95,9 @@ function stripFiller(seg) {
 
 function parseSegment(raw, meal) {
   let seg = raw;
-  let kcal = null;
-  const km = KCAL_RE.exec(seg);
-  if (km) { kcal = parseFloat(km[1]); seg = seg.replace(km[0], ' '); seg = seg.replace(/\b(of|worth|around|about|approx|approximately|which had|which has|that had|having|with|wala|wali|ka|ki|ke|jo|tha|thi|the)\b\s*$/i, '').trim(); }
+  const [cleaned, nut] = extractNutrition(seg);
+  seg = cleaned;
+  const kcal = nut?.k ?? null;
   seg = stripFiller(seg);
   const tokens = seg.split(' ').filter(Boolean);
   let qty = null, unit = null, size = null, unitGrams = null;
@@ -100,7 +121,7 @@ function parseSegment(raw, meal) {
   // trailing unit word ("dal 1 katori") handled above; also "dal ek katori" where number after phrase
   const phrase = rest.join(' ').trim();
   if (!phrase && !kcal) return null;
-  return { raw: raw.trim(), phrase, qty: qty ?? 1, unit, unitGrams, size, kcal, meal };
+  return { raw: raw.trim(), phrase, qty: qty ?? 1, unit, unitGrams, size, kcal, nut, meal };
 }
 
 function splitSegments(text) {
@@ -135,8 +156,16 @@ export function parse(text, opts = {}) {
   for (const [re, m] of MEAL_HINT) if (re.test(pre)) { meal = m; break; }
   const items = [];
   const segments = [];
+  const rawSegs = [];
   for (const seg of splitSegments(pre)) {
-    if (/\bwith\b|\bke sath\b|\bke saath\b/.test(seg) && !KCAL_RE.test(seg)) {
+    // "protein shake with 130 kcal AND 27 g protein" → the macro-only piece belongs to the previous item
+    if (rawSegs.length && isNutritionOnly(seg)) rawSegs[rawSegs.length - 1] += ' ' + seg;
+    else rawSegs.push(seg);
+  }
+  // leading nutrition-only pieces ("protein of 25 g and 120 kcal in my shake") attach to the first real item
+  while (rawSegs.length > 1 && isNutritionOnly(rawSegs[0])) { const first = rawSegs.shift(); rawSegs[0] = first + ' ' + rawSegs[0]; }
+  for (const seg of rawSegs) {
+    if (/\bwith\b|\bke sath\b|\bke saath\b/.test(seg) && !NUT_ANY.test(seg)) {
       // "dal with rice" → two items unless the whole phrase is itself a known dish ("tea with milk")
       const whole = parseSegment(seg, meal);
       const m = whole?.phrase ? match(whole.phrase) : null;
@@ -194,10 +223,18 @@ export function resolve(it, m) {
     const ratio = nut.k > 0 ? it.kcal / nut.k : 0;
     nut = { k: it.kcal, p: nut.p * ratio, cb: nut.cb * ratio, f: nut.f * ratio, fb: nut.fb * ratio };
   }
+  const spoken = it.nut || null;
+  const newFood = !!spoken && (!food || (m?.score || 0) < 74 || Object.keys(spoken).some((k) => k !== 'k'));
+  if (spoken) {
+    // spoken macros override; if no calories were spoken, derive them from the macros (4/4/9)
+    for (const k of ['p', 'cb', 'f', 'fb']) if (spoken[k] != null) nut[k] = spoken[k];
+    if (spoken.k == null && !food) nut.k = 4 * nut.p + 4 * nut.cb + 9 * nut.f; // no database energy to fall back on
+    if (newFood && it.phrase) name = titleCase(it.phrase);
+  }
   return {
     raw: it.raw, phrase: it.phrase, qty: it.qty, unit: it.unit, size: it.size, kcalOverride: it.kcal, meal: it.meal,
-    food, score: m?.score || 0, name, grams: Math.round(grams), unitLabel, ...roundNut(nut),
-    confidence: it.kcal != null ? 'label' : !food ? 'none' : m.score >= 80 ? 'high' : m.score >= 60 ? 'medium' : 'low'
+    food, score: m?.score || 0, name, grams: Math.round(grams), unitLabel, ...roundNut(nut), spoken: !!spoken, newFood,
+    confidence: spoken ? 'label' : !food ? 'none' : m.score >= 80 ? 'high' : m.score >= 60 ? 'medium' : 'low'
   };
 }
 function sizeFactor(size) { return size === 'small' ? 0.7 : size === 'large' ? 1.35 : 1; }
