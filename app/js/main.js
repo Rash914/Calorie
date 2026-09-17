@@ -26,7 +26,7 @@ function shell() {
   const brand = () => h('div', { class: 'brand' }, h('div', { class: 'logo' }, logoImg()), h('div', null, 'CalorieMate', h('span', { class: 'tag' }, 'Eat smarter · Live brighter')));
   const top = h('header', { class: 'topbar' }, brand(), h('div', { class: 'grow' }), h('span', { id: 'streak-pill', class: 'badge green' }));
   const nav = h('nav', { class: 'tabbar', 'aria-label': 'Main' }, h('div', { class: 'side-brand' }, brand()),
-    ...TABS.map(([id, label, ic]) => h('button', { dataset: { view: id }, 'aria-label': label, onclick: () => router.navigate(id) }, icon(ic, 24), h('span', null, label))));
+    ...TABS.map(([id, label, ic]) => h('button', { dataset: { view: id }, 'aria-label': label, title: label, onclick: () => router.navigate(id) }, icon(ic, 24), h('span', null, label))));
   const view = h('main', { id: 'view' });
   const fab = h('button', { class: 'fab', 'aria-label': 'Log by voice', title: 'Speak what you ate', onclick: () => openVoiceSheet({ date: home.state.date, onAdded: () => render() }) }, icon('mic', 28));
   app.append(top, nav, view, fab);

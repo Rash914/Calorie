@@ -1,5 +1,5 @@
 // Service worker: precache the app shell + food DB, cache-first for same-origin assets, network-first for HTML.
-const VERSION = 'aahar-1b13df9ae3';
+const VERSION = 'aahar-0c74286f5a';
 const SHELL = ['./', './index.html', './css/app.css', './manifest.webmanifest', './data/foods.json',
   './js/main.js', './js/util.js', './js/store.js', './js/foods.js', './js/parser.js', './js/speech.js', './js/calc.js', './js/router.js', './js/theme.js',
   './js/ui/components.js', './js/ui/add.js', './js/ui/home.js', './js/ui/log.js', './js/ui/calendar.js', './js/ui/plan.js', './js/ui/me.js', './js/ui/onboarding.js', './js/ui/scale.js', './js/credit.js',
