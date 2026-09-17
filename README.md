@@ -1,4 +1,4 @@
-# Aahar — Indian Calorie Tracker
+# CalorieMate — Indian Calorie Tracker
 
 A fast, offline-first calorie tracker built around **Indian food**: 2,100+ foods with household portions (roti, katori, plate), **voice logging in English & Hindi/Hinglish**, a daily target ring, streaks, a calendar view, BMI/BMR/TDEE, and three sustainable weight plans that boil down to one number — your daily calorie target.
 
@@ -79,7 +79,7 @@ One-time setup on GitHub: **Settings → Pages → Source: GitHub Actions**.
 
 ```bash
 git add -A
-git commit -m "Aahar v1"
+git commit -m "CalorieMate"
 git push -u origin main
 ```
 

@@ -15,7 +15,7 @@ export function openOnboarding({ onDone }) {
   function paint() { steps.querySelectorAll('i').forEach((i, idx) => i.classList.toggle('on', idx <= step)); clear(body); body.append(steps); if (step === 0) s0(); else if (step === 1) s1(); else s2(); }
   function s0() {
     const form = profileForm(store.get().profile, { compact: false });
-    body.append(h('h2', null, 'Welcome to Aahar 🌿'), h('p', { class: 'muted small mb' }, 'Tell us about yourself so we can set your daily calorie target. Everything stays on this device.'),
+    body.append(h('h2', null, 'Welcome to CalorieMate 🍏'), h('p', { class: 'muted small mb' }, 'Tell us about yourself so we can set your daily calorie target. Everything stays on this device.'),
       h('div', { class: 'card soft mb', style: { padding: '10px 12px' } }, h('div', { class: 'small' }, '⚠️ Please fill this in — the app needs it to work out your BMI, maintenance calories and plan. You can skip with ✕ and finish later in ', h('b', null, 'Me'), ' → Profile and ', h('b', null, 'Plan'), '.')),
       form.el,
       h('button', { class: 'btn primary block mt-lg', onclick: () => { const r = form.read(); if (r.error) { toast(r.error, 'error'); return; } profile = r.value; store.setProfile(profile); store.logWeight(profile.weightKg); step = 1; paint(); } }, 'Continue', icon('right', 16)));

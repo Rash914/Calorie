@@ -61,6 +61,7 @@ p { margin: 0; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; letter-spacing: -0.02em; }
 .brand .logo { width: 34px; height: 34px; border-radius: 11px; background: var(--grad); display: grid; place-items: center; color: #fff; box-shadow: 0 6px 16px rgba(18, 181, 165, 0.35); }
 .brand .logo svg { width: 20px; height: 20px; }
+.brand .logo img { width: 34px; height: 34px; border-radius: 11px; display: block; }
 .brand .tag { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0; display: block; margin-top: -3px; }
 main#view { flex: 1; width: 100%; max-width: 640px; margin: 0 auto; padding: 14px 16px calc(var(--tab-h) + var(--safe-b) + 92px); }
 .tabbar {

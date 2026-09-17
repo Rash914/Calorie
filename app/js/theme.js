@@ -5,6 +5,6 @@ export function applyTheme() {
   const dark = t === 'dark' || (t === 'auto' && mq?.matches);
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = dark ? '#0a1220' : '#1d6fe8';
+  if (meta) meta.content = dark ? '#0a1220' : '#5ec8e8';
 }
 mq?.addEventListener?.('change', applyTheme);

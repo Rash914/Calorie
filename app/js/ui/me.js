@@ -8,7 +8,7 @@ import { applyTheme } from '../theme.js';
 import { navigate } from '../router.js';
 import { creditText, CREDIT_LABEL } from '../credit.js';
 
-export const APP_VERSION = '1.1.0';
+export const APP_VERSION = '1.2.0';
 export function render(root) {
   clear(root);
   const s = store.get();
@@ -112,11 +112,11 @@ export function exportBackup() {
   const json = store.exportJSON();
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const a = h('a', { href: url, download: `aahar-backup-${todayKey()}.json` });
+  const a = h('a', { href: url, download: `caloriemate-backup-${todayKey()}.json` });
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
   if (navigator.share && /Android|iPhone/i.test(navigator.userAgent)) {
-    try { const file = new File([blob], a.download, { type: 'application/json' }); if (navigator.canShare?.({ files: [file] })) navigator.share({ files: [file], title: 'Aahar backup' }).catch(() => {}); } catch { /* ignore */ }
+    try { const file = new File([blob], a.download, { type: 'application/json' }); if (navigator.canShare?.({ files: [file] })) navigator.share({ files: [file], title: 'CalorieMate backup' }).catch(() => {}); } catch { /* ignore */ }
   }
   toast('Backup exported');
 }
@@ -124,7 +124,7 @@ export function exportBackup() {
 function aboutCard() {
   const n = foods.count();
   return h('div', { class: 'card mt about' },
-    h('h3', null, 'About Aahar'),
+    h('h3', null, 'About CalorieMate'),
     h('p', { class: 'muted small mt' }, `Indian calorie tracker with voice logging. ${fmt(n)} foods on device; nothing leaves your phone.`),
     h('table', { class: 'mt' },
       h('tr', null, h('td', null, 'Raw foods'), h('td', null, 'ICMR-NIN Indian Food Composition Tables 2017 (IFCT), per 100 g')),

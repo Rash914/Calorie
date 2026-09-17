@@ -18,14 +18,12 @@ import { openVoiceSheet } from './ui/add.js';
 const VIEWS = { home, log, calendar, plan, scale, me };
 const TABS = [['home', 'Home', 'home'], ['log', 'Log', 'search'], ['calendar', 'Calendar', 'calendar'], ['plan', 'Plan', 'target'], ['scale', 'Scale', 'scale'], ['me', 'Me', 'user']];
 
-function logoSvg() {
-  const s = icon('leaf', 20); s.setAttribute('stroke-width', '2.2'); return s;
-}
+function logoImg() { return h('img', { src: './icons/icon-192.png', alt: '', width: 34, height: 34 }); }
 
 function shell() {
   const app = $('#app');
   clear(app);
-  const brand = () => h('div', { class: 'brand' }, h('div', { class: 'logo' }, logoSvg()), h('div', null, 'Aahar', h('span', { class: 'tag' }, 'Indian calorie tracker')));
+  const brand = () => h('div', { class: 'brand' }, h('div', { class: 'logo' }, logoImg()), h('div', null, 'CalorieMate', h('span', { class: 'tag' }, 'Eat smarter · Live brighter')));
   const top = h('header', { class: 'topbar' }, brand(), h('div', { class: 'grow' }), h('span', { id: 'streak-pill', class: 'badge green' }));
   const nav = h('nav', { class: 'tabbar', 'aria-label': 'Main' }, h('div', { class: 'side-brand' }, brand()),
     ...TABS.map(([id, label, ic]) => h('button', { dataset: { view: id }, 'aria-label': label, onclick: () => router.navigate(id) }, icon(ic, 24), h('span', null, label))));
@@ -116,7 +114,7 @@ function showInstallHint() {
   if (sessionStorage.getItem('installHintShown')) return;
   sessionStorage.setItem('installHintShown', '1');
   const wrap = h('div', { class: 'toast-wrap' });
-  const t = h('div', { class: 'toast', style: { display: 'flex', gap: '10px', alignItems: 'center' } }, 'Install Aahar as an app?', h('button', { class: 'btn sm primary', onclick: async () => { wrap.remove(); if (!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall = null; } }, 'Install'), h('button', { class: 'btn sm', style: { color: '#fff' }, onclick: () => wrap.remove() }, 'Later'));
+  const t = h('div', { class: 'toast', style: { display: 'flex', gap: '10px', alignItems: 'center' } }, 'Install CalorieMate as an app?', h('button', { class: 'btn sm primary', onclick: async () => { wrap.remove(); if (!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall = null; } }, 'Install'), h('button', { class: 'btn sm', style: { color: '#fff' }, onclick: () => wrap.remove() }, 'Later'));
   wrap.append(t); document.body.append(wrap);
   setTimeout(() => wrap.remove(), 12000);
 }

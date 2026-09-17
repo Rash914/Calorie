@@ -1,6 +1,6 @@
 {
   "appId": "com.rash914.aahar",
-  "appName": "Aahar",
+  "appName": "CalorieMate",
   "webDir": "android-www",
   "android": { "allowMixedContent": false, "backgroundColor": "#eef5fb" },
   "server": { "androidScheme": "https" },
