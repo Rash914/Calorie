@@ -1,0 +1,17 @@
+node_modules/
+android-www/
+data-build/build-report.txt
+.claude/
+*.log
+.DS_Store
+Thumbs.db
+# Android build outputs
+android/app/build/
+android/build/
+android/.gradle/
+android/.idea/
+android/local.properties
+android/app/release/
+android/*.iml
+android/app/*.iml
+android/captures/

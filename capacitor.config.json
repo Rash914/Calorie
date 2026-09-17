@@ -1,0 +1,8 @@
+{
+  "appId": "com.rash914.aahar",
+  "appName": "Aahar",
+  "webDir": "android-www",
+  "android": { "allowMixedContent": false, "backgroundColor": "#eef5fb" },
+  "server": { "androidScheme": "https" },
+  "plugins": { "SplashScreen": { "launchShowDuration": 0 } }
+}
