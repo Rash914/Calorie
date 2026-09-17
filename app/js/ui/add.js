@@ -227,7 +227,7 @@ export function openVoiceSheet({ date = todayKey(), onAdded, startListening = tr
         onInterim: (t) => setTranscript(t, true),
         onResult: (t) => { setTranscript(t, false); textIn.value = t; analyse(t); },
         onError: (code) => { status.textContent = speech.ERROR_TEXT[code] || `Error: ${code}`; if (!textIn.value.trim()) { transcript.textContent = 'Type below instead, or fix the mic permission.'; transcript.classList.remove('live'); } if (code !== 'no-speech' && code !== 'aborted') toast(speech.ERROR_TEXT[code] || 'Voice error', 'error'); },
-        onEnd: () => { orb.classList.remove('on'); if (status.textContent.startsWith('Listening') || status.textContent.startsWith('सुन')) status.textContent = 'Tap mic to speak again'; }
+        onEnd: () => { orb.classList.remove('on'); if (status.textContent.startsWith('Listening') || status.textContent.startsWith('सुन')) status.textContent = 'Tap mic to speak again'; if (transcript.textContent === 'Listening…') { transcript.textContent = 'Didn’t catch that — tap the mic again, or type below.'; transcript.classList.remove('live'); transcript.classList.add('muted'); } }
       });
     } catch (e) {
       orb.classList.remove('on'); status.textContent = speech.ERROR_TEXT[e?.message] || 'Could not start the microphone';

@@ -3,7 +3,7 @@ import { h, clear, fmt, todayKey, addDays, fmtDate, MEALS, MEAL_LABEL, MEAL_ICON
 import * as store from '../store.js';
 import * as calc from '../calc.js';
 import { icon, ring, macroBar, emojiFor } from './components.js';
-import { openFoodSheet, openQuickAdd, openEditEntry, openVoiceSheet } from './add.js';
+import { openFoodSheet, openQuickAdd, openEditEntry } from './add.js';
 import { navigate } from '../router.js';
 
 export const state = { date: todayKey() };
@@ -49,10 +49,9 @@ export function render(root) {
   ));
 
   // quick actions
-  root.append(h('div', { class: 'row mt', style: { gap: '8px' } },
-    h('button', { class: 'btn primary grow', onclick: () => openVoiceSheet({ date, onAdded: () => render(root) }) }, icon('mic', 18), 'Speak'),
-    h('button', { class: 'btn secondary grow', onclick: () => navigate('log') }, icon('search', 18), 'Search'),
-    h('button', { class: 'btn secondary grow', onclick: () => openQuickAdd({ date, onAdded: () => render(root) }) }, icon('plus', 18), 'Quick')
+  root.append(h('div', { class: 'row mt quick-row', style: { gap: '8px' } },
+    h('button', { class: 'btn secondary grow', onclick: () => navigate('log') }, icon('search', 18), 'Search foods'),
+    h('button', { class: 'btn secondary grow', onclick: () => openQuickAdd({ date, onAdded: () => render(root) }) }, icon('plus', 18), 'Quick add')
   ));
 
   // meals

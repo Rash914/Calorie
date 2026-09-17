@@ -15,3 +15,4 @@ android/app/release/
 android/*.iml
 android/app/*.iml
 android/captures/
+dist/

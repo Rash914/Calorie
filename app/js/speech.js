@@ -70,13 +70,23 @@ async function startNative(plugin, { lang, onInterim, onResult, onError, onEnd }
     const text = (res?.matches?.[0] || '').trim();
     if (text) onResult?.(text);
   } catch (e) {
-    onError?.(String(e?.message || e || 'error'));
+    onError?.(normalizeNativeError(e));
   } finally {
     active = false;
     try { nativeSub?.remove?.(); } catch { /* ignore */ }
     nativeSub = null;
     onEnd?.();
   }
+}
+
+function normalizeNativeError(e) {
+  const m = String(e?.message || e?.errorMessage || e || '').toLowerCase();
+  if (/no match|no speech|didn.t hear|timeout/.test(m)) return 'no-speech';
+  if (/permission|denied|not allowed/.test(m)) return 'not-allowed';
+  if (/network/.test(m)) return 'network';
+  if (/audio|recording|microphone/.test(m)) return 'audio-capture';
+  if (/not available|unavailable|recognizer busy|busy/.test(m)) return 'service-not-allowed';
+  return m || 'error';
 }
 
 export function stop() {
