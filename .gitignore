@@ -16,3 +16,6 @@ android/*.iml
 android/app/*.iml
 android/captures/
 dist/
+handoff/source/
+handoff/*.zip
+handoff/*.apk
