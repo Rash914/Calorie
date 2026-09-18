@@ -19,3 +19,6 @@ dist/
 handoff/source/
 handoff/*.zip
 handoff/*.apk
+release/
+android/keystore.properties
+handoff/release/

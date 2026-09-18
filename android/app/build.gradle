@@ -16,10 +16,25 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Release signing: reads ../release/keystore.properties (git-ignored). Without it, release builds are unsigned.
+    def ksProps = new Properties()
+    def ksFile = rootProject.file('../release/keystore.properties')
+    if (ksFile.exists()) ksProps.load(new FileInputStream(ksFile))
+    signingConfigs {
+        release {
+            if (ksFile.exists()) {
+                storeFile rootProject.file(ksProps['storeFile'])
+                storePassword ksProps['storePassword']
+                keyAlias ksProps['keyAlias']
+                keyPassword ksProps['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (ksFile.exists()) signingConfig signingConfigs.release
         }
     }
 }
