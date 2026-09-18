@@ -77,7 +77,19 @@ async function boot() {
   setTimeout(() => foods.loadExtra().then(() => foods.checkForUpdate()), 1200);
   if (!store.get().settings.onboarded) openOnboarding({ onDone: render });
   else if (/voice=1/.test(location.hash)) { history.replaceState(null, '', '#home'); openVoiceSheet({ date: home.state.date, onAdded: () => render() }); }
+  else if (/demo=/.test(location.hash)) demoState(); // used only by scripts/screenshots.mjs
   registerSW();
+}
+
+// Screenshot helper (harmless in normal use): #log?demo=search prefills a search, #home?demo=voice opens a parsed voice sheet
+function demoState() {
+  const mode = /demo=(\w+)/.exec(location.hash)?.[1];
+  history.replaceState(null, '', '#' + router.current());
+  if (mode === 'search') { log.state.query = 'paneer'; render(); }
+  if (mode === 'voice') {
+    openVoiceSheet({ date: home.state.date, startListening: false });
+    setTimeout(() => { const ta = document.querySelector('.sheet textarea'); if (ta) { ta.value = '2 roti, 1 katori dal aur ek glass doodh'; ta.dispatchEvent(new Event('input')); } }, 400);
+  }
 }
 
 // Web font is loaded after first paint so an offline device never waits on it (system font is the fallback).

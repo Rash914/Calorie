@@ -22,3 +22,4 @@ handoff/*.apk
 release/
 android/keystore.properties
 handoff/release/
+handoff/store-assets/
