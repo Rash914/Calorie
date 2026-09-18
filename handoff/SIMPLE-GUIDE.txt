@@ -114,4 +114,4 @@ then do B. Never edit the credit file by hand — the app will refuse to start i
 - **I want someone else / another AI to work on it.** Give them the `handoff` folder (or the zip) — `README` explains every file; `EDITING-GUIDE` has the recipes.
 
 ## 10. Play Store
-Done: the signing key lives in `release\caloriemate-upload.jks` (passwords in `release\KEY-INFO.txt`, copy in `handoffelease`). **Back it up privately — without it the app can never be updated on Play Store.** The signed bundle (`.aab`) is built with `cd android` then `gradlew bundleRelease` (signing is automatic). Full upload steps, store text and questionnaire answers: `PLAY-STORE-GUIDE`.
+Done: the signing key lives in `release\caloriemate-upload.jks` (passwords in `release\KEY-INFO.txt`, copy in `handoff\release`). **Back it up privately — without it the app can never be updated on Play Store.** The signed bundle (`.aab`) is built with `cd android` then `gradlew bundleRelease` (signing is automatic). Full upload steps, store text and questionnaire answers: `PLAY-STORE-GUIDE`.
