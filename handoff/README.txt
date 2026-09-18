@@ -142,6 +142,8 @@ Every write goes through a sanitizer (types, ranges, lengths, date keys, prototy
 
 ## 8. Build, test, deploy, release
 
+Play Store: signed AAB via `cd android && gradlew bundleRelease` (reads `release/keystore.properties`; keystore is git-ignored — see `PLAY-STORE-GUIDE.md` and keep `release/caloriemate-upload.jks` backed up).
+
 ```bash
 npm install                     # once (Capacitor deps)
 npm test                        # 41 tests

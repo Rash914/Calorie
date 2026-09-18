@@ -113,5 +113,5 @@ then do B. Never edit the credit file by hand — the app will refuse to start i
 - **Website isn't updating.** GitHub → your repo → *Actions* tab: the latest run should be green. If it failed, open it and read the red line (usually a typo in a food line; `npm test` would have caught it).
 - **I want someone else / another AI to work on it.** Give them the `handoff` folder (or the zip) — `README` explains every file; `EDITING-GUIDE` has the recipes.
 
-## 10. Play Store (later)
-You'll need a signing key (keystore). Keep that key file and its password safe forever — without it you cannot update the app on Play Store. The signed bundle is built with `cd android` then `gradlew bundleRelease`; Android Studio's *Build → Generate Signed Bundle* does the same with a wizard.
+## 10. Play Store
+Done: the signing key lives in `release\caloriemate-upload.jks` (passwords in `release\KEY-INFO.txt`, copy in `handoffelease`). **Back it up privately — without it the app can never be updated on Play Store.** The signed bundle (`.aab`) is built with `cd android` then `gradlew bundleRelease` (signing is automatic). Full upload steps, store text and questionnaire answers: `PLAY-STORE-GUIDE`.
