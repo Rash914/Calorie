@@ -49,7 +49,7 @@ Outputs: `android\app\build\outputs\bundle\release\app-release.aab` and `...\apk
 ### Questionnaires
 - **Content rating**: utility/health app; no violence, no user-generated content shared, no gambling → "Everyone".
 - **Data safety**: *Does your app collect or share user data?* → No. Data (food logs, weight, profile) is stored only on the device; the app makes internet requests only to download the food-database update from GitHub Pages and, when the user taps "Search online", to Open Food Facts. No accounts, no ads, no analytics, no crash reporting. Voice input uses the device's speech service (Google) — mention "Audio: processed on device/by the OS speech service, not stored".
-- **Privacy policy URL**: required. Host a simple page (e.g. `https://rash914.github.io/Calorie/privacy.html`) saying the above.
+- **Privacy policy URL**: required. Already published: `https://rash914.github.io/Calorie/privacy.html` (text in `PRIVACY-POLICY.md`; source `app/privacy.html`).
 - **Target audience**: 18+ (simplest) or 13+; the app is not designed for children.
 - **Health apps declaration**: it is a general wellness/calorie tracker, not a medical device; it does not diagnose or treat.
 - **Permissions used**: INTERNET, RECORD_AUDIO (voice logging). Explain RECORD_AUDIO as "speech-to-text for logging meals".

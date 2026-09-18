@@ -134,6 +134,7 @@ function aboutCard() {
       h('tr', null, h('td', null, 'BMI'), h('td', null, 'Asian-Indian cut-offs: <18.5 under, 18.5–22.9 healthy, 23–24.9 overweight, ≥25 obese')),
       h('tr', null, h('td', null, 'Voice'), h('td', null, 'On-device/browser speech recognition (Web Speech API / Android). Audio is not stored by the app.'))),
     h('p', { class: 'faint tiny mt' }, 'Values are estimates; restaurant and home portions vary a lot. This app does not provide medical advice.'),
+    h('p', { class: 'small mt' }, h('a', { href: './privacy.html', target: '_blank', rel: 'noopener' }, 'Privacy policy')),
     h('p', { class: 'small mt', style: { fontWeight: 700, color: 'var(--blue)' } }, `${CREDIT_LABEL} ${creditText()}`, h('span', { class: 'faint', style: { fontWeight: 500 } }, ` · v${APP_VERSION}`))
   );
 }

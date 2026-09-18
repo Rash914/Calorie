@@ -3,7 +3,7 @@ const VERSION = 'aahar-0dbe08f130';
 const SHELL = ['./', './index.html', './css/app.css', './manifest.webmanifest', './data/foods.json.gz', './data/foods-off.json.gz', './data/version.json',
   './js/main.js', './js/util.js', './js/store.js', './js/foods.js', './js/parser.js', './js/speech.js', './js/calc.js', './js/router.js', './js/theme.js',
   './js/ui/components.js', './js/ui/add.js', './js/ui/home.js', './js/ui/log.js', './js/ui/calendar.js', './js/ui/plan.js', './js/ui/me.js', './js/ui/onboarding.js', './js/ui/scale.js', './js/credit.js', './js/off.js',
-  './icons/favicon.png', './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png'];
+  './privacy.html', './icons/favicon.png', './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png'];
 
 self.addEventListener('message', (e) => { if (e.data?.type === 'SKIP_WAITING') self.skipWaiting(); });
 self.addEventListener('install', (e) => {
